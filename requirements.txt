@@ -1,0 +1,32 @@
+# Week 3&4 — LangGraph Multi-Agent Supply Chain Intelligence
+# Tested on Python 3.11–3.14. Install:  pip install -r requirements.txt
+
+# --- Core ML (everything in labs 1-3 runs on these alone) ---
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+matplotlib>=3.8
+seaborn>=0.13
+joblib>=1.3
+
+# --- LangGraph / LangChain v1 agent stack ---
+langgraph>=1.0
+langchain>=1.0
+langchain-core>=1.0
+langchain-openai>=1.0       # Azure OpenAI + OpenAI providers
+langchain-anthropic>=1.0    # Anthropic provider (optional alternative)
+python-dotenv>=1.0
+pydantic>=2.7
+
+# --- Testing ---
+pytest>=8.0
+
+# --- OPTIONAL upgrades (guarded imports in code; skip if wheels unavailable
+#     for your Python version — sklearn fallbacks are built in) ---
+# xgboost>=2.0              # adds "xgboost" to MODEL_REGISTRY
+# shap>=0.46                # adds shap_drivers() explanations
+# imbalanced-learn>=0.12    # adds SMOTE experiments in lab03 extension
+# grandalf>=0.8             # nicer ASCII rendering of the LangGraph graph
+
+# --- OPTIONAL production-path integrations (documented, not required) ---
+# openmetadata-ingestion~=1.5   # real OpenMetadata server client (see src/metadata/catalog.py)

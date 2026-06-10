@@ -1,0 +1,23 @@
+# Secrets — never commit real keys (use .env.example as the template)
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Local tooling config
+.claude/
+
+# Trained model artifacts (regenerate via train_model / labs)
+models/
+
+# Lab chart outputs
+labs/outputs/
+
+# Editor/OS noise
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
