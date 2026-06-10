@@ -67,6 +67,31 @@ The full contract — every file path, function signature, and data schema — l
 
 ---
 
+## When to reach for LangGraph (and when not to)
+
+The first question a client will ask: *"do we actually need agents for this?"* Often the
+answer is no — and saying so builds trust. Match the tool to the need:
+
+| Need | Better Fit |
+| --- | --- |
+| Simple chatbot | LLM / LangChain |
+| Knowledge Q&A | RAG |
+| Multi-step workflow | LangGraph |
+| Human approval | LangGraph |
+| Long-running process | LangGraph |
+| Multi-agent orchestration | LangGraph |
+| Enterprise auditability | LangGraph + observability |
+
+This project deliberately lives in the bottom rows: the flagship question is a
+**multi-step, multi-agent workflow** (supervisor orchestration), the state is
+**checkpointable** for long-running and human-approval flows (`MemorySaver` in
+`main.py`, the HITL interrupt sketch in [CHALLENGES_GUIDE.md](CHALLENGES_GUIDE.md)),
+and every hop is **auditable** in the streamed trace. The top rows are also in here —
+as *components*: the contracts RAG and the plain LLM calls exist inside workers, which
+is exactly the point — agentic systems contain RAG and LLM calls; they don't replace them.
+
+---
+
 ## Quickstart
 
 From the `week3&4` directory (**quote the path — it contains `&`**):
