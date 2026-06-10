@@ -1,0 +1,296 @@
+{
+  "service": {
+    "name": "supply_chain_warehouse",
+    "type": "sqlite",
+    "database": "data/warehouse.db"
+  },
+  "tables": [
+    {
+      "name": "orders",
+      "description": "Fact table: one row per shipped order line, 2024-01-01 to 2025-12-31. Grain = order_id. Joins to customers, products, and carriers via FK ids. Primary asset for late-delivery analysis: late_delivery is the label the ML pipeline predicts and the KPI operations tracks.",
+      "columns": [
+        {
+          "name": "order_id",
+          "dataType": "INTEGER",
+          "description": "Surrogate key, unique per order line; starts at 10000.",
+          "tags": [
+            "PK"
+          ]
+        },
+        {
+          "name": "order_date",
+          "dataType": "TEXT",
+          "description": "Date the order was placed, ISO YYYY-MM-DD.",
+          "tags": []
+        },
+        {
+          "name": "shipping_date",
+          "dataType": "TEXT",
+          "description": "Date the order was actually delivered = order_date + actual_shipping_days. Leakage for ML (encodes the outcome); fine for SQL reporting.",
+          "tags": [
+            "ml-leakage"
+          ]
+        },
+        {
+          "name": "customer_id",
+          "dataType": "INTEGER",
+          "description": "FK to customers.customer_id.",
+          "tags": [
+            "FK"
+          ]
+        },
+        {
+          "name": "product_id",
+          "dataType": "INTEGER",
+          "description": "FK to products.product_id.",
+          "tags": [
+            "FK"
+          ]
+        },
+        {
+          "name": "carrier_id",
+          "dataType": "INTEGER",
+          "description": "FK to carriers.carrier_id \u2014 which carrier moved the shipment.",
+          "tags": [
+            "FK"
+          ]
+        },
+        {
+          "name": "shipping_mode",
+          "dataType": "TEXT",
+          "description": "Service tier: Same Day, First Class, Second Class, or Standard Class. Determines scheduled_shipping_days (1/2/4/6 respectively).",
+          "tags": []
+        },
+        {
+          "name": "scheduled_shipping_days",
+          "dataType": "INTEGER",
+          "description": "Promised transit time in days, fixed by shipping_mode: Same Day=1, First Class=2, Second Class=4, Standard Class=6.",
+          "tags": []
+        },
+        {
+          "name": "actual_shipping_days",
+          "dataType": "INTEGER",
+          "description": "Realized transit time in days. Leakage for ML \u2014 together with the schedule it determines the target.",
+          "tags": [
+            "ml-leakage"
+          ]
+        },
+        {
+          "name": "late_delivery",
+          "dataType": "INTEGER",
+          "description": "1 if actual_shipping_days > scheduled_shipping_days, else 0. The business KPI and the ML target.",
+          "tags": [
+            "target",
+            "label"
+          ]
+        },
+        {
+          "name": "order_item_quantity",
+          "dataType": "INTEGER",
+          "description": "Units ordered on the line, 1-5.",
+          "tags": []
+        },
+        {
+          "name": "sales",
+          "dataType": "REAL",
+          "description": "Gross sales value of the line in USD.",
+          "tags": []
+        },
+        {
+          "name": "discount",
+          "dataType": "REAL",
+          "description": "Fractional discount applied, 0.00-0.25.",
+          "tags": []
+        },
+        {
+          "name": "profit",
+          "dataType": "REAL",
+          "description": "Profit on the line in USD; can be negative.",
+          "tags": []
+        },
+        {
+          "name": "market",
+          "dataType": "TEXT",
+          "description": "Top level of the geo hierarchy: LATAM, Europe, Pacific Asia, USCA, Africa.",
+          "tags": []
+        },
+        {
+          "name": "order_region",
+          "dataType": "TEXT",
+          "description": "Region nested under market (e.g. Western Europe).",
+          "tags": []
+        },
+        {
+          "name": "order_country",
+          "dataType": "TEXT",
+          "description": "Destination country nested under order_region.",
+          "tags": []
+        }
+      ],
+      "tags": [
+        "fact",
+        "core"
+      ],
+      "sampleQueries": [
+        "SELECT shipping_mode, COUNT(*) AS n_orders, ROUND(AVG(late_delivery), 3) AS late_rate FROM orders GROUP BY shipping_mode ORDER BY late_rate DESC",
+        "SELECT c.carrier_name, COUNT(*) AS n_orders, ROUND(AVG(o.late_delivery), 3) AS late_rate FROM orders o JOIN carriers c ON o.carrier_id = c.carrier_id GROUP BY c.carrier_name ORDER BY late_rate DESC",
+        "SELECT market, ROUND(SUM(sales), 2) AS total_sales, ROUND(SUM(profit), 2) AS total_profit FROM orders GROUP BY market ORDER BY total_sales DESC"
+      ]
+    },
+    {
+      "name": "customers",
+      "description": "Dimension: one row per customer. Currently a slim dimension carrying the customer's segment; join from orders.customer_id.",
+      "columns": [
+        {
+          "name": "customer_id",
+          "dataType": "INTEGER",
+          "description": "Customer surrogate key; starts at 1000.",
+          "tags": [
+            "PK"
+          ]
+        },
+        {
+          "name": "customer_segment",
+          "dataType": "TEXT",
+          "description": "Consumer, Corporate, or Home Office.",
+          "tags": []
+        }
+      ],
+      "tags": [
+        "dimension"
+      ],
+      "sampleQueries": [
+        "SELECT customer_segment, COUNT(*) AS n_customers FROM customers GROUP BY customer_segment",
+        "SELECT cu.customer_segment, ROUND(AVG(o.late_delivery), 3) AS late_rate FROM orders o JOIN customers cu ON o.customer_id = cu.customer_id GROUP BY cu.customer_segment"
+      ]
+    },
+    {
+      "name": "products",
+      "description": "Dimension: one row per distinct product, with its category. Join from orders.product_id.",
+      "columns": [
+        {
+          "name": "product_id",
+          "dataType": "INTEGER",
+          "description": "Product surrogate key assigned during warehouse load.",
+          "tags": [
+            "PK"
+          ]
+        },
+        {
+          "name": "product_name",
+          "dataType": "TEXT",
+          "description": "Human-readable product name, unique.",
+          "tags": []
+        },
+        {
+          "name": "category_name",
+          "dataType": "TEXT",
+          "description": "One of ~10 product categories (Electronics, Furniture, ...).",
+          "tags": []
+        }
+      ],
+      "tags": [
+        "dimension"
+      ],
+      "sampleQueries": [
+        "SELECT category_name, COUNT(*) AS n_products FROM products GROUP BY category_name ORDER BY n_products DESC",
+        "SELECT p.category_name, ROUND(AVG(o.late_delivery), 3) AS late_rate FROM orders o JOIN products p ON o.product_id = p.product_id GROUP BY p.category_name ORDER BY late_rate DESC"
+      ]
+    },
+    {
+      "name": "carriers",
+      "description": "Dimension: one row per contracted carrier. Bridges the warehouse to the contracts corpus: contract_file names the governing MSA in data/contracts/, and on_time_sla_pct is the contractual on-time commitment from that MSA \u2014 compare it to the observed late rate in orders to find SLA breaches.",
+      "columns": [
+        {
+          "name": "carrier_id",
+          "dataType": "INTEGER",
+          "description": "Carrier surrogate key.",
+          "tags": [
+            "PK"
+          ]
+        },
+        {
+          "name": "carrier_name",
+          "dataType": "TEXT",
+          "description": "SwiftShip Express, Atlas Freight Co., Pacific Crest Carriers, or NordHaul Logistics.",
+          "tags": []
+        },
+        {
+          "name": "contract_file",
+          "dataType": "TEXT",
+          "description": "Filename of the governing contract in data/contracts/ (markdown).",
+          "tags": []
+        },
+        {
+          "name": "on_time_sla_pct",
+          "dataType": "REAL",
+          "description": "Contractual on-time delivery commitment in percent (e.g. 96.0 = 96%).",
+          "tags": []
+        }
+      ],
+      "tags": [
+        "dimension",
+        "contracts-bridge"
+      ],
+      "sampleQueries": [
+        "SELECT carrier_name, on_time_sla_pct, contract_file FROM carriers ORDER BY on_time_sla_pct DESC",
+        "SELECT c.carrier_name, ROUND(100 * (1 - AVG(o.late_delivery)), 1) AS observed_on_time_pct, c.on_time_sla_pct AS contractual_sla_pct FROM carriers c JOIN orders o ON o.carrier_id = c.carrier_id GROUP BY c.carrier_id ORDER BY observed_on_time_pct ASC"
+      ]
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Late Delivery",
+      "definition": "An order whose realized transit time exceeded its promise: actual_shipping_days > scheduled_shipping_days (late_delivery = 1). The central KPI of this project and the ML target.",
+      "mappedAssets": [
+        "orders.late_delivery"
+      ]
+    },
+    {
+      "term": "On-Time SLA",
+      "definition": "The contractual minimum percentage of shipments a carrier must deliver on or before the scheduled date in a measurement period; falling below it triggers the penalty/credit clauses of the carrier's contract.",
+      "mappedAssets": [
+        "carriers.on_time_sla_pct"
+      ]
+    },
+    {
+      "term": "Scheduled Shipping Days",
+      "definition": "Promised transit time in days, fixed by shipping mode: Same Day=1, First Class=2, Second Class=4, Standard Class=6.",
+      "mappedAssets": [
+        "orders.scheduled_shipping_days",
+        "orders.shipping_mode"
+      ]
+    },
+    {
+      "term": "Market",
+      "definition": "Top level of the geographic hierarchy market > region > country. One of: LATAM, Europe, Pacific Asia, USCA, Africa.",
+      "mappedAssets": [
+        "orders.market",
+        "orders.order_region",
+        "orders.order_country"
+      ]
+    },
+    {
+      "term": "Shipping Mode",
+      "definition": "The delivery service tier sold to the customer (Same Day, First Class, Second Class, Standard Class). Tighter modes promise fewer days and are empirically more often late.",
+      "mappedAssets": [
+        "orders.shipping_mode"
+      ]
+    },
+    {
+      "term": "Carrier",
+      "definition": "The contracted logistics provider that physically moves a shipment. Each carrier has a signed MSA in data/contracts/ governing penalties and SLAs.",
+      "mappedAssets": [
+        "carriers.carrier_name",
+        "orders.carrier_id"
+      ]
+    },
+    {
+      "term": "Late Delivery Penalty",
+      "definition": "The contractual financial remedy owed when a carrier or supplier misses its delivery commitment. Formulas differ by contract (per-day %, flat fee, service credits, liquidated damages) \u2014 see the contract_file of the relevant carrier.",
+      "mappedAssets": [
+        "carriers.contract_file"
+      ]
+    }
+  ]
+}
