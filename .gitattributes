@@ -1,0 +1,6 @@
+# Never apply line-ending conversion to binary artifacts
+*.pdf binary
+*.db binary
+*.joblib binary
+*.png binary
+*.pkl binary

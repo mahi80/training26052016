@@ -81,6 +81,7 @@ pip install -r requirements.txt
 python data\generate_supply_chain_data.py   # → data/raw/supply_chain_orders.csv (~12k orders)
 python data\generate_contracts.py           # → data/contracts/*.md (6 contracts)
 python data\build_database.py               # → data/warehouse.db + data/metadata_catalog.json
+python data\render_contracts_pdf.py         # → data/contracts_pdf/*.pdf (optional — realistic PDF renditions of the contracts)
 
 # 3. Configure an LLM — or don't (see Offline mode below)
 copy .env.example .env       # then set LLM_PROVIDER + the matching API key
@@ -124,9 +125,10 @@ of every other lab — and `python main.py --offline-check` proves it in one com
 |---|---|
 | `ARCHITECTURE.md` | The binding contract: paths, signatures, schemas — single source of truth |
 | `TRAINING_PLAN.md` | 10-day curriculum: concept blocks, labs, checkpoints, trials, capstone rubric |
+| `CHALLENGES_GUIDE.md` | Production issues & challenges — the Week 1–2 whiteboarding companion: every challenge (loops, hallucinations, injection, drift, cost, governance, observability, eval, memory) demonstrated and mitigated in this repo |
 | `main.py` | CLI front door: `--ask` / `--demo` / `--offline-check` |
 | `requirements.txt` · `.env.example` | Dependencies · provider/env template |
-| `data/` | Three idempotent generators + their outputs (`raw/` CSV, `contracts/` markdown, `warehouse.db`, `metadata_catalog.json`) |
+| `data/` | Idempotent generators + their outputs (`raw/` CSV, `contracts/` markdown, `contracts_pdf/` realistic PDF renditions via `render_contracts_pdf.py`, `warehouse.db`, `metadata_catalog.json`) |
 | `src/config.py` | `get_llm()` provider switch, `is_offline()`, `PROJECT_ROOT` |
 | `src/state.py` | `SupplyChainState`, `WORKERS` — the shared graph state schema |
 | `src/ml_pipeline/` | Loader (+ DataCo column map), EDA, features, preprocess, train, evaluate, explain |
@@ -194,3 +196,4 @@ compiled graph with a fake structured-output LLM (ARCHITECTURE.md §6).
 - **Learning the system?** Start with [TRAINING_PLAN.md](TRAINING_PLAN.md), Day 1.
 - **Building on the system?** [ARCHITECTURE.md](ARCHITECTURE.md) is the contract — read §4 before touching `src/`.
 - **Demoing to a client?** `python main.py --demo`, then open `src/graph.py` and tell the story from the mermaid graph above.
+- **Talking production risks?** [CHALLENGES_GUIDE.md](CHALLENGES_GUIDE.md) maps every whiteboarding-session challenge (agent loops, hallucinations, prompt/SQL injection, cost, drift, governance, observability, evaluation, memory) to where it lives in this repo and how to harden it.

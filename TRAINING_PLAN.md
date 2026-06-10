@@ -335,6 +335,14 @@ for production. **100 points, 4 dimensions × 25:**
 | **Live demo execution** | Flagship question runs; narrates each hop; recovers gracefully from any hiccup (offline fallback ready) | Demo runs but narration is thin | Demo fails with no fallback plan |
 | **Hardening roadmap** | Concrete next steps: HITL approval before SQL, persistence, tracing, eval suite, security review — prioritized and costed in effort terms | Lists generic improvements | "Add more features" |
 
+> **Hardening prep — read before the briefing.** [CHALLENGES_GUIDE.md](CHALLENGES_GUIDE.md)
+> is the production overlay for this dimension: it maps every Week 1–2 whiteboarding
+> challenge (agent loops, hallucinations, prompt/SQL injection, cost, drift, governance,
+> observability, evaluation, memory) to the exact mechanism in this repo and the named
+> production upgrade (Langfuse/OTel, RBAC, PII masking, semantic caching, HITL). Each
+> challenge ships a "whiteboard moment" talking-point script and a one-line "Try it" —
+> arm trainees with it so the hardening roadmap is concrete and costed, not generic.
+
 **Exit checkpoint (program hand-off)**
 1. *Which Week 7 attack surface did you ship this week?*
    <details><summary>Expected answer</summary>The tool layer: `run_sql_query` (injection/exfiltration target despite guardrails) and `search_contracts` (retrieved text is untrusted input that can carry prompt injection into the agent's context).</details>

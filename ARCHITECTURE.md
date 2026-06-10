@@ -36,15 +36,19 @@ week3&4/
 ├── ARCHITECTURE.md              ← this file
 ├── README.md                    ← setup + quickstart + repo tour
 ├── TRAINING_PLAN.md             ← 2-week day-by-day curriculum
+├── CHALLENGES_GUIDE.md          ← production issues & challenges guide (whiteboarding companion)
 ├── requirements.txt
 ├── .env.example
 ├── main.py                      ← CLI demo: python main.py --demo | --ask "..."
 ├── data/
 │   ├── generate_supply_chain_data.py   # → data/raw/supply_chain_orders.csv
 │   ├── generate_contracts.py           # → data/contracts/*.md  (6 contracts)
+│   ├── contract_texts.py               # verbatim contract section bodies (imported by generate_contracts)
+│   ├── render_contracts_pdf.py         # → data/contracts_pdf/*.pdf (realistic PDF versions)
 │   ├── build_database.py               # → data/warehouse.db + data/metadata_catalog.json
 │   ├── raw/                            # generated (gitignore-able)
-│   └── contracts/                      # generated
+│   ├── contracts/                      # generated (markdown — parsed by PageIndex)
+│   └── contracts_pdf/                  # generated (PDF — realistic client-facing artifacts)
 ├── src/
 │   ├── __init__.py
 │   ├── config.py                # get_llm(), is_offline()  [ALREADY WRITTEN — do not change]
