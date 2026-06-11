@@ -366,9 +366,15 @@ for production. **100 points, 4 dimensions × 25:**
 
 ## Appendix B — Extensions (fast finishers & post-course)
 
+0. **Day 11 / self-study — the production layers:** follow [BUILD_MANUAL.md](BUILD_MANUAL.md)
+   chapter by chapter (or run `labs/lab10_production_layers.py` cell by cell): MCP
+   servers + protocol client, the external A2A carrier agent, the validator/judge gate,
+   human review with interrupt/resume, and the FastAPI gateway. Fully offline-capable;
+   extensions #4 and #6 below are *implemented* there (answer-side gate in
+   `src/graph_v2.py`, gateway in `src/gateway.py`) and make ideal walkthrough material.
 1. **Real data at scale:** drop the Kaggle DataCo CSV (~180k rows) onto `load_orders` via `DATACO_COLUMN_MAP` (`src/ml_pipeline/data_loader.py`); re-run lab03 and compare drivers against the synthetic world.
 2. **Real OpenMetadata:** run the OpenMetadata server via Docker, ingest `warehouse.db`, and back `MetadataCatalog` with the `openmetadata-ingestion` SDK per the commented sketch in `src/metadata/catalog.py` (`OPENMETADATA_HOST_PORT` + JWT).
 3. **Tracing:** enable LangSmith and study the supervisor's routing decisions and per-worker token spend across the 5 demo scenarios.
-4. **HITL guard:** add a LangGraph interrupt before `run_sql_query` so a human approves every SQL statement — the natural hardening-roadmap item from the capstone.
-5. **Durable memory:** swap `MemorySaver` → `SqliteSaver` in `main.py`'s `_build_app()` and demonstrate a conversation surviving a process restart.
-6. **Serve it:** wrap `build_graph()` in a FastAPI endpoint (per the Week 3 deployment pattern from the earlier program) — `POST /ask {"question", "thread_id"}` streaming hop events.
+4. **HITL guard (tool-side):** add a LangGraph interrupt *before* `run_sql_query` so a human approves every SQL statement — the answer-side gate already ships in `src/graph_v2.py`; this variant moves the pause in front of the tool.
+5. **Durable memory:** swap `MemorySaver` → `SqliteSaver` in `main.py`'s `_build_app()` (and `src/gateway.py`) and demonstrate a conversation surviving a process restart.
+6. **Serve it — done, extend it:** `src/gateway.py` already wraps the v2 graph (`POST /ask`, `/resume`, `/threads/{id}/state`); extend it with streaming hop events (Server-Sent Events over `app.stream(...)`).

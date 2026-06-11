@@ -67,6 +67,36 @@ The full contract — every file path, function signature, and data schema — l
 
 ---
 
+## Production layers (v2) — build the full architecture yourself
+
+The core above is the *middle* of a production architecture. The repo also ships the
+outer layers — an **API gateway**, **MCP servers** (mock SAP/ServiceNow + a SQL shim)
+with a sync protocol client, an **external carrier agent** reached over **A2A**, a
+**validator/judge** gate, and **human review** with interrupt/resume — plus
+[BUILD_MANUAL.md](BUILD_MANUAL.md): a beginner-proof, chapter-per-box manual that
+builds and runs every layer with checkpoints (works fully offline).
+
+```mermaid
+flowchart TD
+    U([User / Frontend<br/>Swagger /docs · Invoke-RestMethod]) -->|HTTP| GW["API Gateway<br/>src/gateway.py"]
+    GW --> S{{"supervisor_v2<br/>(structured-output router)"}}
+    S -->|next_agent| W["4 specialist workers<br/>(data/ml/contracts/sql)"]
+    S -->|next_agent| LC[logistics_coordinator]
+    W --> S
+    LC --> S
+    LC -.->|MCP client| MCP[("MCP servers<br/>SQL · SAP · ServiceNow")]
+    LC -.->|A2A JSON-RPC| EXT["External agent<br/>SwiftShip partner (port 8001)"]
+    S -->|FINISH| V{{"validator / judge<br/>src/agents/validator.py"}}
+    V -->|complete| E([Auto-complete → End])
+    V -->|needs_human| HR["human_review<br/>interrupt()"]
+    HR -->|"Command(resume=approve/edit)"| E
+```
+
+Start with [BUILD_MANUAL.md](BUILD_MANUAL.md) Chapter 0, or run the layers cell-by-cell
+in `labs/lab10_production_layers.py`.
+
+---
+
 ## When to reach for LangGraph (and when not to)
 
 The first question a client will ask: *"do we actually need agents for this?"* Often the
@@ -136,6 +166,8 @@ set **or** no provider key exists — and every module degrades deliberately:
 | PageIndex tree build + lexical retrieval — **lab 06** | **Fully works** (heading summaries + keyword scoring instead of LLM navigation) |
 | SQL guardrails + query tool | **Fully works** |
 | Toy state-machine graph + tool inspection (parts of labs 04, 05, 07, 08, 09) | **Works** — every lab opens with a banner cell saying exactly which cells need a key |
+| v2: MCP servers + protocol client, external A2A agent, heuristic validator, HITL interrupt/resume — **lab 10** | **Fully works** (no LLM involved — see BUILD_MANUAL.md) |
+| v2: API gateway (`uvicorn src.gateway:app`) | **Works** — serves the keyword-routed demo graph, responses tagged `"mode": "offline-demo"` |
 | ReAct workers, supervisor routing, `--demo` / `--ask` | Needs a key (the CLI prints clear setup instructions instead of failing) |
 | Test suite (`python -m pytest tests/ -q`) | **Fully green** — routing tests mock the LLM |
 
@@ -159,9 +191,14 @@ of every other lab — and `python main.py --offline-check` proves it in one com
 | `src/ml_pipeline/` | Loader (+ DataCo column map), EDA, features, preprocess, train, evaluate, explain |
 | `src/pageindex/` | Vectorless RAG: markdown → tree index (`tree_builder.py`), reasoning/lexical retrieval (`retriever.py`) |
 | `src/metadata/` | OpenMetadata-style catalog client (`catalog.py`) over the catalog JSON |
-| `src/agents/` | `@tool` wrappers (`tools_ml/rag/sql.py`), ReAct workers, structured-output supervisor |
+| `src/agents/` | `@tool` wrappers (`tools_ml/rag/sql/mcp/a2a.py`), ReAct workers, structured-output supervisors (v1 + v2), validator/judge |
 | `src/graph.py` | `build_graph()` — wires supervisor + 4 workers into a compiled LangGraph app |
-| `labs/` | 9 teaching labs — plain `.py` with `# %%` cell markers (run cell-by-cell in VS Code) |
+| `BUILD_MANUAL.md` | Step-by-step manual: build every box of the full architecture, beginner-proof, offline-capable |
+| `src/mcp_servers/` | Mock SAP + ServiceNow MCP servers, SQL shim over the guard-railed tool, sync stdio client |
+| `src/a2a/` | External "SwiftShip partner" agent service (A2A-style: agent card + JSON-RPC message/send) |
+| `src/state_v2.py` · `src/graph_v2.py` | v2 state (+verdict) · v2 graph: 5 workers + validator + human-review interrupt/resume |
+| `src/gateway.py` | FastAPI front door: `/ask`, `/resume`, `/threads/{id}/state`, `/health` (+ Swagger UI at `/docs`) |
+| `labs/` | 10 teaching labs — plain `.py` with `# %%` cell markers (run cell-by-cell in VS Code) |
 | `exercises/` | Week 3 & 4 trial starters, trainer-only solutions, quizzes |
 | `models/` | Saved model artifacts (created at runtime by `train_model`) |
 | `tests/` | Offline-safe pytest suite, including mocked-LLM graph routing |
@@ -219,6 +256,7 @@ compiled graph with a fake structured-output LLM (ARCHITECTURE.md §6).
 ## Where to next
 
 - **Learning the system?** Start with [TRAINING_PLAN.md](TRAINING_PLAN.md), Day 1.
+- **Building the full architecture (gateway, MCP, A2A, validator, human review)?** Follow [BUILD_MANUAL.md](BUILD_MANUAL.md) chapter by chapter — beginner-proof, offline-capable.
 - **Building on the system?** [ARCHITECTURE.md](ARCHITECTURE.md) is the contract — read §4 before touching `src/`.
 - **Demoing to a client?** `python main.py --demo`, then open `src/graph.py` and tell the story from the mermaid graph above.
 - **Talking production risks?** [CHALLENGES_GUIDE.md](CHALLENGES_GUIDE.md) maps every whiteboarding-session challenge (agent loops, hallucinations, prompt/SQL injection, cost, drift, governance, observability, evaluation, memory) to where it lives in this repo and how to harden it.

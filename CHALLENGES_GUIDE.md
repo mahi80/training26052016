@@ -640,6 +640,15 @@ Wire it as a node *before* the SQL tool runs, on a checkpointed graph
 and you've turned the abstract "approval checkpoint" on the whiteboard into a
 running gate. **Human Override Rate** (§4) becomes measurable the day this ships.
 
+> **Now implemented.** The v2 stack ships a running answer-side gate:
+> `src/graph_v2.py` pauses at a `human_review` node when the validator
+> (`src/agents/validator.py`) rules `needs_human`, and resumes via
+> `Command(resume={"action": "approve" | "edit", ...})` — proven offline in
+> `tests/test_graph_v2_hitl.py` and walked end-to-end (including over HTTP via
+> `src/gateway.py`) in BUILD_MANUAL.md chapters 9–11. The *tool-side* gate
+> sketched above (approval before a write tool runs) remains the Week-7
+> exercise — same `interrupt` machinery, different placement.
+
 ---
 
 ## 7. Closing — an operating model, not just an LLM

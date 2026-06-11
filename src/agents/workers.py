@@ -150,3 +150,41 @@ def make_sql_analyst(model: BaseChatModel | None = None) -> Any:
         tools=[list_warehouse_tables, get_table_schema, search_metadata, run_sql_query],
         system_prompt=SQL_ANALYST_PROMPT,
     )
+
+
+LOGISTICS_COORDINATOR_PROMPT = (
+    "You are the logistics coordinator with access to LIVE operational systems: "
+    "SAP purchase orders (via MCP), ServiceNow incident tickets (via MCP), the "
+    "warehouse (via MCP), and the carrier's own partner agent (via A2A). "
+    "Use sap_purchase_orders for PO status per vendor, servicenow_incidents for "
+    "open operational tickets per carrier, and ask_carrier_agent for the carrier's "
+    "current fleet status, pickup capacity, or hub congestion. "
+    "Base every claim on tool output and name the system it came from, e.g. "
+    "'(SAP)' or '(ServiceNow)' or '(carrier partner agent)'. "
+    "If a tool returns a string starting with MCP_ERROR or A2A_ERROR, report that "
+    "the system is unreachable in plain language — including any fix the message "
+    "suggests — and answer from the remaining systems; never invent live data. "
+    "Keep answers concise and operational: what is happening now and what it "
+    "means for shipments."
+)
+
+
+def make_logistics_coordinator(model: BaseChatModel | None = None) -> Any:
+    """ReAct agent over LIVE systems: SAP + ServiceNow via MCP, carrier via A2A.
+
+    The v2-only worker (BUILD_MANUAL.md Part II): everything it knows comes
+    over a protocol boundary — MCP subprocesses or the external agent's HTTP
+    endpoint — never a direct Python import of business logic.
+    """
+    from src.agents.tools_a2a import ask_carrier_agent
+    from src.agents.tools_mcp import (
+        sap_purchase_orders,
+        servicenow_incidents,
+        warehouse_query_via_mcp,
+    )
+
+    return create_agent(
+        model=model or get_llm(),
+        tools=[sap_purchase_orders, servicenow_incidents, warehouse_query_via_mcp, ask_carrier_agent],
+        system_prompt=LOGISTICS_COORDINATOR_PROMPT,
+    )
